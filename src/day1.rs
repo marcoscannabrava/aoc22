@@ -52,7 +52,7 @@ Your puzzle answer was 200044.
 */
 use crate::helpers::read_file;
 
-pub fn day1_parser() -> Vec<Vec<u32>> {
+fn parser() -> Vec<Vec<u32>> {
     let contents = read_file("/inputs/day1.txt");
 
     let mut result: Vec<Vec<u32>> = Vec::new();
@@ -71,7 +71,7 @@ pub fn day1_parser() -> Vec<Vec<u32>> {
 }
 
 pub fn solution() -> (String, String) {
-    let vector = day1_parser();
+    let vector = parser();
     let mut map_of_sums = vector.iter().map(|x| x.iter().sum::<u32>()).collect::<Vec<u32>>();
     map_of_sums.sort();
     let top_three = map_of_sums.into_iter().rev().take(3).collect::<Vec<u32>>();

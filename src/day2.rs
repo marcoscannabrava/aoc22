@@ -45,7 +45,7 @@ Your puzzle answer was 10334.
 use crate::helpers::read_file;
 use std::collections::HashMap;
 
-pub fn day2_parser() -> Vec<(String, String)> {
+fn parser() -> Vec<(String, String)> {
     let contents = read_file("/inputs/day2.txt");
 
     let mut result: Vec<(String, String)> = Vec::new();
@@ -66,7 +66,7 @@ pub fn solution() -> (String, String) {
     ]);
     let second_rules: HashMap<&str, &str> =
         HashMap::from([("X", "loss"), ("Y", "draw"), ("Z", "win")]);
-    let vector: Vec<(String, String)> = day2_parser();
+    let vector: Vec<(String, String)> = parser();
 
     fn calculate_points(code: &str) -> i32 {
         let strategy_points: HashMap<&str, i32> = HashMap::from([("X", 1), ("Y", 2), ("Z", 3)]);
