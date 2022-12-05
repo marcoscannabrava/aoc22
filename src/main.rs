@@ -5,6 +5,7 @@ pub mod helpers;
 
 fn main() {
     println!("Hello, AOC 2022!");
+    println!("---");
 
     let day1_result = day1::solution();
     println!("Day 1, Part 1 Result: {}", day1_result.0);
