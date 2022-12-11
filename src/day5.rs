@@ -176,7 +176,7 @@ fn parser(contents: String) -> (Vec<Vec<String>>, Vec<Operation>) {
     return (crates, operations);
 }
 
-fn parse_answer_one(crates: &Vec<Vec<String>>) -> String {
+fn parse_answer(crates: &Vec<Vec<String>>) -> String {
     crates
         .iter()
         .map(|c| c.last().unwrap_or(&"".to_owned()).to_owned())
@@ -194,8 +194,8 @@ pub fn solution() -> (String, String) {
         run_operation_updated(op, &mut crates_two);
     }
 
-    let result1: String = parse_answer_one(&crates_one);
-    let result2: String = parse_answer_one(&crates_two);
+    let result1: String = parse_answer(&crates_one);
+    let result2: String = parse_answer(&crates_two);
 
     return (result1.to_string(), result2.to_string());
 }
@@ -257,7 +257,7 @@ move 1 from 1 to 2";
             day5::run_operation(op, &mut crates)
         };
 
-        assert!(day5::parse_answer_one(&crates) == "CMZ".to_owned());
+        assert!(day5::parse_answer(&crates) == "CMZ".to_owned());
     }
 
     #[test]
@@ -268,6 +268,6 @@ move 1 from 1 to 2";
             day5::run_operation_updated(op, &mut crates)
         };
 
-        assert!(day5::parse_answer_one(&crates) == "MCD".to_owned());
+        assert!(day5::parse_answer(&crates) == "MCD".to_owned());
     }
 }
