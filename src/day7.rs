@@ -47,19 +47,19 @@ dir xyz means that the current directory contains a directory named xyz.
 Given the commands and output in the example above, you can determine that the filesystem looks visually like this:
 
 - / (dir)
-  - a (dir)
-    - e (dir)
-      - i (file, size=584)
-    - f (file, size=29116)
-    - g (file, size=2557)
-    - h.lst (file, size=62596)
-  - b.txt (file, size=14848514)
-  - c.dat (file, size=8504156)
-  - d (dir)
-    - j (file, size=4060174)
-    - d.log (file, size=8033020)
-    - d.ext (file, size=5626152)
-    - k (file, size=7214296)
+- a (dir)
+- e (dir)
+- i (file, size=584)
+- f (file, size=29116)
+- g (file, size=2557)
+- h.lst (file, size=62596)
+- b.txt (file, size=14848514)
+- c.dat (file, size=8504156)
+- d (dir)
+- j (file, size=4060174)
+- d.log (file, size=8033020)
+- d.ext (file, size=5626152)
+- k (file, size=7214296)
 Here, there are four directories: / (the outermost directory), a and d (which are in /), and e (which is in a). These directories also contain files of various sizes.
 
 Since the disk is full, your first step should probably be to find directories that are good candidates for deletion. To do this, you need to determine the total size of each directory. The total size of a directory is the sum of the sizes of the files it contains, directly or indirectly. (Directories themselves do not count as having any intrinsic size.)
@@ -75,15 +75,131 @@ To begin, find all of the directories with a total size of at most 100000, then 
 Find all of the directories with a total size of at most 100000. What is the sum of the total sizes of those directories?
 */
 use crate::helpers::read_file;
-use std::collections::HashSet;
+use regex::Regex;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-struct Node {
+type NodeRef<'a> = Rc<RefCell<Node<'a>>>;
+
+#[derive(Debug)]
+struct Node<'a> {
+    tree: Box<Tree<'a>>,
+    location: String,
     name: String,
     size: usize,
-    parent: Option<Node>,
-    children: Vec<Node>,
+    parent: Option<NodeRef<'a>>,
+    children: Option<Vec<NodeRef<'a>>>,
 }
 
+impl<'a> Node<'a> {
+    fn append_child(&mut self, mut child: Node<'a>) -> NodeRef {
+        child.location = format!("{}/{}", self.location, child.name);
+        child.parent = self.tree.get_node(self.location.as_str());
+        let node_ref = self.tree.add_node(child);
+        match self.children {
+            Some(ref mut children) => children.push(node_ref),
+            None => self.children = Some(vec![node_ref]),
+        }
+        node_ref
+    }
+    fn remove_child(&mut self, child: NodeRef) {
+        let child_node = child.borrow();
+        match self.children {
+            Some(ref mut children) => {
+                let index = children
+                    .iter()
+                    .position(|x| x.borrow().name == child_node.name)
+                    .unwrap();
+                children.remove(index);
+                self.tree.all_nodes.remove(child_node.location.as_str());
+                if child_node.children.is_some() {
+                    let grandchildren = child_node.children.unwrap().clone();
+                    for grandchild in grandchildren {
+                        child_node.remove_child(grandchild);
+                    }
+                }
+            }
+            None => (),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Tree<'a> {
+    all_nodes: HashMap<&'a str, Node<'a>>,
+}
+
+impl<'a> Tree<'a> {
+    fn get_node(&self, location: &str) -> Option<NodeRef> {
+        match self.all_nodes.get(location) {
+            Some(node) => Some(Rc::new(RefCell::new(*node))),
+            None => None,
+        }
+    }
+    fn add_node(self: Box<Self>, node: Node) -> NodeRef {
+        node.tree = self;
+        self.all_nodes.insert(node.location.as_str(), node);
+        Rc::new(RefCell::new(node))
+    }
+}
+
+/// Parses terminal commands and outputs into a tree of Nodes.
+/// Returns a tree: HashMap of Nodes.
+fn build_tree(terminal_output: &str) -> Tree {
+    let cd_cmd_re = Regex::new(r"$ cd (.*)").unwrap();
+    let ls_cmd_re = Regex::new(r"$ ls").unwrap();
+    let file_re = Regex::new(r"(\d+) (.*)").unwrap();
+    let dir_re = Regex::new(r"dir (.*)").unwrap();
+
+    let mut tree: Box<Tree>;
+    let root: Node = Node {
+        tree: Box::new(tree),
+        name: String::from("/"),
+        location: String::from("/"),
+        size: 0,
+        parent: None,
+        children: None,
+    };
+    tree.add_node(root);
+    
+    let mut curr_node = tree.get_node("/").unwrap();
+
+    for l in terminal_output.lines() {
+        if cd_cmd_re.is_match(l) {
+            let captures = cd_cmd_re.captures(l).unwrap();
+            let dir_name = captures.get(1).unwrap().as_str();
+            if dir_name == ".." {
+                curr_node = curr_node.borrow_mut().parent.unwrap();
+            }
+        } else if file_re.is_match(l) {
+            let captures = file_re.captures(l).unwrap();
+            let size = captures.get(1).unwrap().as_str().parse::<usize>().unwrap();
+            curr_node.borrow_mut().append_child(Node {
+                tree: tree,
+                name: captures.get(2).unwrap().as_str().to_owned(),
+                size: size,
+                parent: None,
+                location: "".to_owned(),
+                children: None,
+            });
+        } else if dir_re.is_match(l) {
+            let captures = dir_re.captures(l).unwrap();
+            let dir_name = captures.get(1).unwrap().as_str();
+            curr_node.borrow_mut().append_child(Node {
+                tree: tree,
+                name: String::from(dir_name),
+                size: 0,
+                children: None,
+                parent: None,
+                location: "".to_owned(),
+            });
+        }
+    }
+    return tree;
+}
+
+/// 1. Build tree representation of filesystem
+/// 2. Find all directories with size <= 100000
+/// 3. Sum the sizes of those directories
 pub fn solution() -> (String, String) {
     let contents = read_file("/inputs/day7.txt");
     let result1: usize = 0;
@@ -122,11 +238,8 @@ $ ls
 7214296 k";
 
     #[test]
-    fn find_first_n_distinct() {
-        for (s, expected) in TEST_INPUT.iter() {
-            println!("string: {:?}", s);
-            println!("index: {:?}", day6::find_first_n_distinct(s, 4));
-            assert_eq!(day6::find_first_n_distinct(s, 4), *expected as usize);
-        }
+    fn build_tree() {
+        let nodes = day7::build_tree(TEST_INPUT);
+        println!("nodes: {:?}", nodes);
     }
 }
