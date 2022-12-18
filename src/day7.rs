@@ -73,144 +73,124 @@ As the outermost directory, / contains every file. Its total size is 48381165, t
 To begin, find all of the directories with a total size of at most 100000, then calculate the sum of their total sizes. In the example above, these directories are a and e; the sum of their total sizes is 95437 (94853 + 584). (As in this example, this process can count files more than once!)
 
 Find all of the directories with a total size of at most 100000. What is the sum of the total sizes of those directories?
+
+--- Part Two ---
+Now, you're ready to choose a directory to delete.
+
+The total disk space available to the filesystem is 70000000. To run the update, you need unused space of at least 30000000. You need to find a directory you can delete that will free up enough space to run the update.
+
+In the example above, the total size of the outermost directory (and thus the total amount of used space) is 48381165; this means that the size of the unused space must currently be 21618835, which isn't quite the 30000000 required by the update. Therefore, the update still requires a directory with total size of at least 8381165 to be deleted before it can run.
+
+To achieve this, you have the following options:
+
+Delete directory e, which would increase unused space by 584.
+Delete directory a, which would increase unused space by 94853.
+Delete directory d, which would increase unused space by 24933642.
+Delete directory /, which would increase unused space by 48381165.
+Directories e and a are both too small; deleting them would not free up enough space. However, directories d and / are both big enough! Between these, choose the smallest: d, increasing unused space by 24933642.
+
+Find the smallest directory that, if deleted, would free up enough space on the filesystem to run the update. What is the total size of that directory?
+
 */
 use crate::helpers::read_file;
-use regex::Regex;
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-
-type NodeRef<'a> = Rc<RefCell<Node<'a>>>;
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 #[derive(Debug)]
-struct Node<'a> {
-    tree: Box<Tree<'a>>,
-    location: String,
+struct File {
     name: String,
     size: usize,
-    parent: Option<NodeRef<'a>>,
-    children: Option<Vec<NodeRef<'a>>>,
-}
-
-impl<'a> Node<'a> {
-    fn append_child(&mut self, mut child: Node<'a>) -> NodeRef {
-        child.location = format!("{}/{}", self.location, child.name);
-        child.parent = self.tree.get_node(self.location.as_str());
-        let node_ref = self.tree.add_node(child);
-        match self.children {
-            Some(ref mut children) => children.push(node_ref),
-            None => self.children = Some(vec![node_ref]),
-        }
-        node_ref
-    }
-    fn remove_child(&mut self, child: NodeRef) {
-        let child_node = child.borrow();
-        match self.children {
-            Some(ref mut children) => {
-                let index = children
-                    .iter()
-                    .position(|x| x.borrow().name == child_node.name)
-                    .unwrap();
-                children.remove(index);
-                self.tree.all_nodes.remove(child_node.location.as_str());
-                if child_node.children.is_some() {
-                    let grandchildren = child_node.children.unwrap().clone();
-                    for grandchild in grandchildren {
-                        child_node.remove_child(grandchild);
-                    }
-                }
-            }
-            None => (),
-        }
-    }
 }
 
 #[derive(Debug)]
-struct Tree<'a> {
-    all_nodes: HashMap<&'a str, Node<'a>>,
-}
+struct FileSystem(HashMap<PathBuf, Vec<File>>);
 
-impl<'a> Tree<'a> {
-    fn get_node(&self, location: &str) -> Option<NodeRef> {
-        match self.all_nodes.get(location) {
-            Some(node) => Some(Rc::new(RefCell::new(*node))),
-            None => None,
-        }
-    }
-    fn add_node(self: Box<Self>, node: Node) -> NodeRef {
-        node.tree = self;
-        self.all_nodes.insert(node.location.as_str(), node);
-        Rc::new(RefCell::new(node))
-    }
-}
+impl FileSystem {
+    /// Parses terminal commands and outputs into a HashMap
+    fn build(mut self, terminal_output: &str) -> self::FileSystem {
+        let cd_cmd = "$ cd";
+        let ls_cmd = "$ ls";
+        let dir_prefix = "dir ";
 
-/// Parses terminal commands and outputs into a tree of Nodes.
-/// Returns a tree: HashMap of Nodes.
-fn build_tree(terminal_output: &str) -> Tree {
-    let cd_cmd_re = Regex::new(r"$ cd (.*)").unwrap();
-    let ls_cmd_re = Regex::new(r"$ ls").unwrap();
-    let file_re = Regex::new(r"(\d+) (.*)").unwrap();
-    let dir_re = Regex::new(r"dir (.*)").unwrap();
+        let mut curr_dir = PathBuf::from("/");
+        self.0.insert(curr_dir.clone(), vec![]);
 
-    let mut tree: Box<Tree>;
-    let root: Node = Node {
-        tree: Box::new(tree),
-        name: String::from("/"),
-        location: String::from("/"),
-        size: 0,
-        parent: None,
-        children: None,
-    };
-    tree.add_node(root);
-    
-    let mut curr_node = tree.get_node("/").unwrap();
-
-    for l in terminal_output.lines() {
-        if cd_cmd_re.is_match(l) {
-            let captures = cd_cmd_re.captures(l).unwrap();
-            let dir_name = captures.get(1).unwrap().as_str();
-            if dir_name == ".." {
-                curr_node = curr_node.borrow_mut().parent.unwrap();
+        for l in terminal_output.lines() {
+            if l.starts_with(cd_cmd) {
+                match l.replace(cd_cmd, "").trim() {
+                    "/" => curr_dir = PathBuf::from("/"),
+                    ".." => {
+                        curr_dir.pop();
+                    }
+                    dir_name => {
+                        curr_dir.push(dir_name);
+                    }
+                }
+            } else if l.starts_with(ls_cmd) {
+                continue;
+            } else if l.starts_with(dir_prefix) {
+                let dir_name = l.replace(dir_prefix, "").trim().to_owned();
+                let mut new_dir = curr_dir.clone();
+                new_dir.push(dir_name);
+                self.0.insert(new_dir, vec![]);
+            } else if l.len() > 0 {
+                let (size, name) = l.split_at(l.find(' ').unwrap());
+                self.0.get_mut(&curr_dir).unwrap().push(File {
+                    name: name.trim().to_string(),
+                    size: size.parse::<usize>().unwrap(),
+                });
             }
-        } else if file_re.is_match(l) {
-            let captures = file_re.captures(l).unwrap();
-            let size = captures.get(1).unwrap().as_str().parse::<usize>().unwrap();
-            curr_node.borrow_mut().append_child(Node {
-                tree: tree,
-                name: captures.get(2).unwrap().as_str().to_owned(),
-                size: size,
-                parent: None,
-                location: "".to_owned(),
-                children: None,
-            });
-        } else if dir_re.is_match(l) {
-            let captures = dir_re.captures(l).unwrap();
-            let dir_name = captures.get(1).unwrap().as_str();
-            curr_node.borrow_mut().append_child(Node {
-                tree: tree,
-                name: String::from(dir_name),
-                size: 0,
-                children: None,
-                parent: None,
-                location: "".to_owned(),
-            });
+        }
+        self
+    }
+
+    fn sum_files_size(&self, dir: &PathBuf) -> usize {
+        match self.0.get(dir) {
+            Some(dir) => dir.iter().map(|f| f.size).sum::<usize>(),
+            None => 0,
         }
     }
-    return tree;
+
+    fn dir_size(&self, dir: &PathBuf) -> usize {
+        let mut size: usize = 0;
+        self.0.keys().filter(|k| k.starts_with(dir)).for_each(|k| {
+            size += self.sum_files_size(k);
+        });
+        size
+    }
 }
 
-/// 1. Build tree representation of filesystem
-/// 2. Find all directories with size <= 100000
-/// 3. Sum the sizes of those directories
 pub fn solution() -> (String, String) {
     let contents = read_file("/inputs/day7.txt");
-    let result1: usize = 0;
-    let result2: usize = 0;
+
+    let fs = FileSystem(HashMap::new()).build(&contents);
+    let folders = fs.0.keys();
+    let result1: usize = folders.clone()
+        .map(|k| {
+            let size = fs.dir_size(k);
+            return if size < 100000 { size } else { 0 };
+        })
+        .sum();
+
+    let available_mem = 70000000;
+    let total_required_mem = 30000000;
+    let used_mem = fs.dir_size(&PathBuf::from("/"));
+    let delta_required_mem = total_required_mem - (available_mem - used_mem);
+    let dir_sizes = folders.map(|k| fs.dir_size(k));
+    let min_directory_size_greater_than_delta = dir_sizes
+        .filter(|s| *s > delta_required_mem)
+        .min()
+        .unwrap();
+    let result2 = min_directory_size_greater_than_delta;
 
     return (result1.to_string(), result2.to_string());
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::day7;
+    use std::{collections::HashMap, path::PathBuf};
+
+    use crate::day7::FileSystem;
 
     const TEST_INPUT: &str = "
 $ cd /
@@ -238,8 +218,15 @@ $ ls
 7214296 k";
 
     #[test]
-    fn build_tree() {
-        let nodes = day7::build_tree(TEST_INPUT);
-        println!("nodes: {:?}", nodes);
+    fn build() {
+        let mut fs: FileSystem = FileSystem(HashMap::new());
+        fs = fs.build(TEST_INPUT);
+        println!("FileSystem");
+        for (k, v) in &fs.0 {
+            println!("{}: {:?}", k.to_str().unwrap(), v);
+        }
+        let ae_dir = fs.0.get(&PathBuf::from("/a/e")).unwrap();
+        assert_eq!(ae_dir[0].name, "i".to_string());
+        assert_eq!(ae_dir[0].size, 584);
     }
 }

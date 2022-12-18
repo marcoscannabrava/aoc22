@@ -5,9 +5,7 @@
 A value created in a loop is dropped if not saved in a collection outside of the loop.
 
 
-
-## Stack/Heap Model and Shared Ownership
-
+## Stack/Heap Model, Shared Ownership and Recursive Structures
 
 
 Rust has reference containers for shared ownership:
@@ -37,3 +35,7 @@ Rc and RefCell (and Arc and Mutex) are often combined to both allow the value to
 > [Wrapper Types in Rust: Choosing Your Guarantees - In Pursuit of Laziness](https://manishearth.github.io/blog/2015/05/27/wrapper-types-in-rust-choosing-your-guarantees/)
 > [The Stack and the Heap - The Rust Programming Language](https://web.mit.edu/rust-lang_v1.25/arch/amd64_ubuntu1404/share/doc/rust/html/book/first-edition/the-stack-and-the-heap.html)
 > [What are Smart Pointers and their Types in Rust??](https://blog.knoldus.com/smart-pointers-box-rc-ref-and-refmut-in-rust/)
+
+
+# Other Readings
+- [Dyn async traits, part 8: the soul of Rust](http://smallcultfollowing.com/babysteps/blog/2022/09/18/dyn-async-traits-part-8-the-soul-of-rust/)
