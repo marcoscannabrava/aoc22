@@ -1,3 +1,9 @@
+# Great Docs
+- [The Rust Book](https://doc.rust-lang.org/book/)
+- [Introduction - Rust By Example](https://doc.rust-lang.org/stable/rust-by-example/)
+- [Rust std crate](https://doc.rust-lang.org/stable/std/)
+- [Learning Rust With Entirely Too Many Linked Lists](https://rust-unofficial.github.io/too-many-lists/index.html)
+
 # Other Solutions
 1. [NickyMeuleman](https://nickymeuleman.netlify.app/garden/) — [GitHub - NickyMeuleman/scrapyard: Space for notes and experiments while learning the Rust programming language](https://github.com/NickyMeuleman/scrapyard)
 2. [GitHub - fspoettel/advent-of-code-2022: 🦀 Rust solutions for Advent of Code 2022](https://github.com/fspoettel/advent-of-code-2022)

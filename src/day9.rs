@@ -2,11 +2,13 @@ use crate::helpers::read_file;
 use std::collections::HashSet;
 
 type Position = (i32, i32);
+type LinkedRope = Option<Box<Rope>>;
 
 struct Rope {
     head: Position,
     tail: Position,
     tail_path_set: HashSet<Position>,
+    tied_to: LinkedRope,
 }
 
 impl Rope {
@@ -16,8 +18,25 @@ impl Rope {
             head: start,
             tail: start,
             tail_path_set: HashSet::from([start]),
+            tied_to: None,
         }
     }
+    
+    fn start_tied_knots(knots: u32) -> Rope {
+        let mut rope_head = Rope::start();
+        let mut curr_rope = &mut rope_head;
+        for _ in 0..knots {
+            let new_rope = Rope::start();
+            curr_rope.tie_to(new_rope);
+            curr_rope = curr_rope.tied_to.as_mut().unwrap();
+        }
+        rope_head
+    }
+
+    fn tie_to(&mut self, rope: Rope) {
+        self.tied_to = Some(Box::new(rope));
+    }
+    
     fn move_head(&mut self, cmd: &str) {
         let direction = cmd.chars().nth(0).unwrap();
         let distance = cmd[2..].parse::<i32>().unwrap();
@@ -29,16 +48,27 @@ impl Rope {
                 'R' => self.head.0 += 1,
                 _ => panic!("Invalid direction"),
             }
-            self.move_tail();
+            follow_knot(self.tail, self.head);
+
+            // TODO: remove tied_to and make tail an Optional LinkedRope?
+            self.tail_path_set.insert(self.tail);
+            let next_knot = self.tied_to.as_mut();
+            match next_knot {
+                Some(knot) => {
+                    follow_knot(knot.head, self.tail);
+                    follow_knot(knot.tail, knot.head);
+                }
+                None => (),
+                
+            }
         }
     }
-    fn move_tail(&mut self) {
-        let (dx, dy) = delta_pos(self.tail, self.head);
-        if dy.abs() > 1 || dx.abs() > 1 {
-            self.tail.0 += 1 * dx.signum();
-            self.tail.1 += 1 * dy.signum();
-            self.tail_path_set.insert(self.tail);
-        }
+}
+fn follow_knot(mut follower: Position, mover: Position) {
+    let (dx, dy) = delta_pos(follower, mover);
+    if dy.abs() > 1 || dx.abs() > 1 {
+        follower.0 += 1 * dx.signum();
+        follower.1 += 1 * dy.signum();
     }
 }
 
@@ -96,12 +126,12 @@ U 20";
 
     #[test]
     fn rope_part2() {
-        let mut rope = day9::Rope::start();
-        for cmd in TEST_INPUT.lines() {
+        let mut rope = day9::Rope::start_tied_knots(10);
+        for cmd in TEST_INPUT_TWO.lines() {
             rope.move_head(cmd);
         }
-        assert_eq!(rope.head, (2, 2));
-        assert_eq!(rope.tail, (1, 2));
-        assert_eq!(rope.tail_path_set.len(), 13);
+        assert_eq!(rope.head, (0, 15));
+        assert_eq!(rope.tail, (0, 6));
+        assert_eq!(rope.tail_path_set.len(), 36);
     }
 }
