@@ -1,5 +1,5 @@
 # Other Solutions
-1. [NickyMeuleman](https://nickymeuleman.netlify.app/garden/aoc2022-day07) — [GitHub - NickyMeuleman/scrapyard: Space for notes and experiments while learning the Rust programming language](https://github.com/NickyMeuleman/scrapyard)
+1. [NickyMeuleman](https://nickymeuleman.netlify.app/garden/) — [GitHub - NickyMeuleman/scrapyard: Space for notes and experiments while learning the Rust programming language](https://github.com/NickyMeuleman/scrapyard)
 2. [GitHub - fspoettel/advent-of-code-2022: 🦀 Rust solutions for Advent of Code 2022](https://github.com/fspoettel/advent-of-code-2022)
 3. [ericwburden](https://www.ericburden.work/blog/) — [GitHub - ericwburden/advent_of_code_2022: Advent of Code solutions for 2022, in Rust!](https://github.com/ericwburden/advent_of_code_2022)
 4. [GitHub - AxlLind/AdventOfCode2022: Solutions to Advent of Code 2022 in Rust  🦀](https://github.com/AxlLind/AdventOfCode2022)

@@ -96,6 +96,7 @@ use crate::helpers::read_file;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 struct File {
     name: String,

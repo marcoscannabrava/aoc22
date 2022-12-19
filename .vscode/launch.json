@@ -3,6 +3,14 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
+    "inputs": [
+        {
+            "id": "testArgsTarget",
+            "type": "promptString",
+            "default": "",
+            "description": "Choose Test Target: e.g. 'day3' or the (partial) name of the test function"
+        },
+	],
     "configurations": [
         {
             "type": "lldb",
@@ -38,7 +46,9 @@
                     "kind": "bin"
                 }
             },
-            "args": [],
+            "args": [
+                "${input:testArgsTarget}"
+            ],
             "cwd": "${workspaceFolder}"
         }
     ]

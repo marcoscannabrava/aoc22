@@ -46,4 +46,9 @@ fn main() {
     println!("Day 7, Part 1 Answer: {}", day7_result.0);
     println!("Day 7, Part 2 Answer: {}", day7_result.1);
     println!("---");
+
+    let day8_result = day8::solution();
+    println!("Day 8, Part 1 Answer: {}", day8_result.0);
+    println!("Day 8, Part 2 Answer: {}", day8_result.1);
+    println!("---");
 }
