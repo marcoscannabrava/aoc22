@@ -1,9 +1,11 @@
 use crate::helpers::read_file;
 use std::collections::HashSet;
+use std::fmt::Display;
 
 type Position = (i32, i32);
 type LinkedRope = Option<Box<Rope>>;
 
+#[derive(Debug, Clone)]
 struct Rope {
     head: Position,
     tail: Position,
@@ -48,32 +50,41 @@ impl Rope {
                 'R' => self.head.0 += 1,
                 _ => panic!("Invalid direction"),
             }
-            follow_knot(self.tail, self.head);
+            self.pull_tail();
 
-            // TODO: remove tied_to and make tail an Optional LinkedRope?
-            self.tail_path_set.insert(self.tail);
-            let next_knot = self.tied_to.as_mut();
-            match next_knot {
-                Some(knot) => {
-                    follow_knot(knot.head, self.tail);
-                    follow_knot(knot.tail, knot.head);
-                }
-                None => (),
-                
+            let mut curr_knot = &mut self.clone();
+            let mut next_knot = curr_knot.tied_to.as_mut();
+            while next_knot.is_some() {
+                let next = next_knot.unwrap();
+                next.head = curr_knot.tail;
+                next.pull_tail();
+                curr_knot = next.as_mut();
+                next_knot = curr_knot.tied_to.as_mut();
             }
         }
     }
-}
-fn follow_knot(mut follower: Position, mover: Position) {
-    let (dx, dy) = delta_pos(follower, mover);
-    if dy.abs() > 1 || dx.abs() > 1 {
-        follower.0 += 1 * dx.signum();
-        follower.1 += 1 * dy.signum();
+
+    fn pull_tail(&mut self) {
+        let (dx, dy) = delta_pos(self.tail, self.head);
+        if dy.abs() > 1 || dx.abs() > 1 {
+            self.tail.0 += 1 * dx.signum();
+            self.tail.1 += 1 * dy.signum();
+        }
+        self.tail_path_set.insert(self.tail);
     }
 }
 
+
 fn delta_pos(pos1: Position, pos2: Position) -> Position {
     (pos2.0 - pos1.0, pos2.1 - pos1.1)
+}
+
+impl Display for Rope {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        // TODO: find max x and y in tail_path_set and print a grid
+        let result = 0;
+        write!(f, "{}", result)
+    }
 }
 
 pub fn solution() -> (String, String) {
@@ -130,8 +141,12 @@ U 20";
         for cmd in TEST_INPUT_TWO.lines() {
             rope.move_head(cmd);
         }
-        assert_eq!(rope.head, (0, 15));
-        assert_eq!(rope.tail, (0, 6));
-        assert_eq!(rope.tail_path_set.len(), 36);
+        let mut last_knot = &rope.clone();
+        while last_knot.tied_to.is_some() {
+            last_knot = mut last_knot.tied_to.as_ref().unwrap();
+        }
+        assert_eq!(rope.head, (-11, 15));
+        assert_eq!(last_knot.tail, (0, 6));
+        assert_eq!(last_knot.tail_path_set.len(), 36);
     }
 }
