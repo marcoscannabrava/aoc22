@@ -1,45 +1,38 @@
 use crate::helpers::read_file;
-use std::{collections::HashSet, rc::Rc, cell::RefCell};
+use std::{collections::HashSet, fmt};
 
 type Position = (i32, i32);
-type LinkedRope = Option<Rc<RefCell<Rope>>>;
+type Knots = Vec<Knot>;
+
+#[derive(Clone)]
+struct Knot {
+    pos: Position,
+    path_set: HashSet<Position>,
+}
+
+impl fmt::Debug for Knot {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Knot @ {:?}", self.pos)
+    }
+}
 
 #[derive(Debug, Clone)]
 struct Rope {
-    knot: Position,
-    path_set: HashSet<Position>,
-    tied_to: LinkedRope,
-    tail: LinkedRope,
+    knots: Knots,
 }
 
 impl Rope {
-    unsafe fn start(knots: u32) -> Rope {
+    fn start(knots: u32) -> Rope {
         let start = (0, 0);
-        let mut rope_head = Rope {
-            knot: start,
-            path_set: HashSet::from([start]),
-            tied_to: None,
-            tail: None,
-        };
-        let mut curr_rope = &mut rope_head as *mut Rope;
-        for _ in 0..knots {
-            let new_rope = Rope {
-                knot: start,
-                path_set: HashSet::from([start]),
-                tied_to: None,
-                tail: None,
-            };
-            (*curr_rope).tie_to(new_rope);
-            // if i == knots - 1 {
-            //     rope_head.tail = Some(curr_rope.tied_to.as_ref().unwrap());
-            // }
-            curr_rope = (*curr_rope).tied_to.as_ref().unwrap().as_ptr();
+        Rope {
+            knots: vec![
+                Knot {
+                    pos: start,
+                    path_set: HashSet::from([start]),
+                };
+                knots as usize
+            ],
         }
-        rope_head
-    }
-
-    fn tie_to(&mut self, rope: Rope) {
-        self.tied_to = Some(Rc::new(RefCell::new(rope)));
     }
 
     fn move_head(&mut self, cmd: &str) {
@@ -47,52 +40,32 @@ impl Rope {
         let distance = cmd[2..].parse::<i32>().unwrap();
         for _ in 0..distance {
             match direction {
-                'U' => self.knot.1 += 1,
-                'D' => self.knot.1 -= 1,
-                'L' => self.knot.0 -= 1,
-                'R' => self.knot.0 += 1,
+                'U' => self.knots[0].pos.1 += 1,
+                'D' => self.knots[0].pos.1 -= 1,
+                'L' => self.knots[0].pos.0 -= 1,
+                'R' => self.knots[0].pos.0 += 1,
                 _ => panic!("Invalid direction"),
             }
             self.pull_tail();
         }
     }
 
-    fn pull_tail(self) { 
-        let mut curr = Rc::new(RefCell::new(self));
-        let mut maybe_next = curr.borrow().tied_to;
-        while maybe_next.is_some() {
-            let next = maybe_next.unwrap();
-            let (dx, dy) = delta_pos(next.borrow().knot, curr.borrow().knot);
+    fn pull_tail(&mut self) {
+        for i in 1..self.knots.len() {
+            let (left, right) = self.knots.split_at_mut(i);
+            let head = left.last().unwrap();
+            let tail = &mut right[0];
+            let (dx, dy) = delta_pos(tail.pos, head.pos);
             if dy.abs() > 1 || dx.abs() > 1 {
-                next.borrow().knot.0 += 1 * dx.signum();
-                next.borrow().knot.1 += 1 * dy.signum();
+                tail.pos.0 += 1 * dx.signum();
+                tail.pos.1 += 1 * dy.signum();
             }
-            curr.borrow().path_set.insert(curr.borrow().knot);
-            curr = next;
-            maybe_next = curr.borrow().tied_to;
-        }
+            tail.path_set.insert(tail.pos);
+        };
     }
 
-    /// helper function get last knot and print out all of the knots in a rope
-    fn get_tail(self, print: bool) -> Rc<RefCell<Rope>> {
-        if print {
-            println!("All of the rope's knots:");
-        }
-        let mut last_knot = Rc::new(RefCell::new(self));
-        let mut i = 1;
-        while last_knot.borrow().tied_to.is_some() {
-            if print {
-                println!(
-                    "{} pos: {:?}, path_len: {:?}",
-                    i,
-                    last_knot.borrow().knot,
-                    last_knot.borrow().path_set.len()
-                );
-            }
-            last_knot = last_knot.borrow().tied_to.unwrap();
-            i += 1;
-        }
-        last_knot
+    fn tail(&self) -> Option<&Knot> {
+        self.knots.last()
     }
 }
 
@@ -103,14 +76,14 @@ fn delta_pos(pos1: Position, pos2: Position) -> Position {
 pub fn solution() -> (String, String) {
     let contents = read_file("/inputs/day9.txt");
 
-    let mut rope = Rope::start(1);
+    let mut rope = Rope::start(2);
     let mut rope_with_ten_knots = Rope::start(10);
     for cmd in contents.lines() {
         rope.move_head(cmd);
         rope_with_ten_knots.move_head(cmd);
     }
-    let result1: usize = rope.get_tail(false).borrow().path_set.len();
-    let result2: usize = rope_with_ten_knots.get_tail(false).borrow().path_set.len();
+    let result1: usize = rope.tail().unwrap().path_set.len();
+    let result2: usize = rope_with_ten_knots.tail().unwrap().path_set.len();
 
     return (result1.to_string(), result2.to_string());
 }
@@ -141,32 +114,24 @@ U 20";
 
     #[test]
     fn rope_part1() {
-        let mut rope = day9::Rope::start(1);
+        let mut rope = day9::Rope::start(2);
         for cmd in TEST_INPUT.lines() {
             rope.move_head(cmd);
         }
-        assert_eq!(rope.knot, (2, 2));
-        assert_eq!(rope.get_tail(false).borrow().knot, (1, 2));
-        assert_eq!(rope.get_tail(false).borrow().path_set.len(), 13);
+        assert_eq!(rope.knots[0].pos, (2, 2));
+        assert_eq!(rope.tail().unwrap().pos, (1, 2));
+        assert_eq!(rope.tail().unwrap().path_set.len(), 13);
     }
 
     #[test]
     fn rope_part2() {
         let mut rope = day9::Rope::start(10);
-        println!("Moving the head!");
         for cmd in TEST_INPUT_TWO.lines() {
-            println!("cmd: {}", cmd);
             rope.move_head(cmd);
-            rope.get_last_knot(true);
         }
-        println!("Finished moving.");
-        let last_knot = rope.get_last_knot(true);
-        println!(
-            "last knot: head: {:?}, tail: {:?}",
-            last_knot.head, last_knot.tail
-        );
-        assert_eq!(rope.head, (-11, 15));
-        assert_eq!(last_knot.head, (-11, 6));
-        assert_eq!(last_knot.tail_path_set.len(), 36);
+        let last_knot = rope.tail().unwrap();
+        assert_eq!(rope.knots[0].pos, (-11, 15));
+        assert_eq!(last_knot.pos, (-11, 6));
+        assert_eq!(last_knot.path_set.len(), 36);
     }
 }
