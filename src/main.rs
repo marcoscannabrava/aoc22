@@ -7,6 +7,8 @@ pub mod day6;
 pub mod day7;
 pub mod day8;
 pub mod day9;
+pub mod day10;
+pub mod day10_test;
 pub mod helpers;
 
 fn main() {
@@ -56,5 +58,10 @@ fn main() {
     let day9_result = day9::solution();
     println!("Day 9, Part 1 Answer: {}", day9_result.0);
     println!("Day 9, Part 2 Answer: {}", day9_result.1);
+    println!("---");
+
+    let day10_result = day10::solution();
+    println!("Day 10, Part 1 Answer: {}", day10_result.0);
+    println!("Day 10, Part 2 Answer: {}", day10_result.1);
     println!("---");
 }
