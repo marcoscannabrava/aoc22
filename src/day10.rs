@@ -1,3 +1,5 @@
+use std::{collections::HashMap, hash::Hash};
+
 use crate::helpers::read_file;
 
 /// (number of cycles, register value increase/decrease)
@@ -28,10 +30,11 @@ impl Register {
         register
     }
 
-    // Example:
-    // noop     -> (1,1), (2,1)
-    // addx 3   -> ..., (4,4)
-    // addx -5  -> ..., (6,-1)
+    /// Return SignalWave for this register
+    /// Example:
+    /// noop     -> (1,1), (2,1)
+    /// addx 3   -> ..., (4,4)
+    /// addx -5  -> ..., (6,-1)
     fn get_signal_wave(&self) -> SignalWave {
         let mut signal_wave: SignalWave = vec![(1, 1)];
 
@@ -40,15 +43,6 @@ impl Register {
             signal_wave.push((cycles + op_cycles, strength + op))
         }
         signal_wave
-    }
-
-    fn get_x_at_cycle(&self, cycle: &usize) -> i32 {
-        self.signal_wave
-            .iter()
-            .rev()
-            .find(|(idx, _)| idx <= cycle)
-            .unwrap()
-            .1
     }
 
     fn get_x_at_cycles(&self, cycles: Vec<usize>) -> Vec<(usize, i32)> {
@@ -68,6 +62,41 @@ impl Register {
         }
         result
     }
+
+    fn get_x_per_cycle(&self) -> HashMap<usize, i32> {
+        let mut v: HashMap<usize, i32> = HashMap::new();
+        let mut i = 1;
+        for (cycle, x) in &self.signal_wave {
+            while v.len() <= *cycle {
+                v.insert(i, x.clone());
+                i += 1;
+            }
+        }
+        v
+    }
+
+
+    /// each cycle draw a pixel: either "#" or "." if it's within the sprite position
+    /// sprite is 3 pixels wide and positioned at current register
+    fn draw_screen(&self) -> String {
+        let mut result: Vec<String> = vec![];
+        let sprite_positions = self.get_x_per_cycle();
+        let max_cycle = sprite_positions.keys().max().unwrap();
+
+        for cycle in 1..(max_cycle - 1) {
+            let sprite_pos: usize = sprite_positions.get(&cycle).unwrap().clone() as usize;
+            let crt_pos = cycle % 40;
+            if crt_pos >= sprite_pos && crt_pos <= (sprite_pos + 2) {
+                result.push("#".to_owned());
+            } else {
+                result.push(".".to_owned());
+            }
+            if cycle > 1 && crt_pos == 0 {
+                result.push("\n".to_owned());
+            }
+        }
+        result.join("")
+    }
 }
 
 pub fn solution() -> (String, String) {
@@ -85,9 +114,9 @@ pub fn solution() -> (String, String) {
         .map(|(cycle, signal)| (*cycle as i32) * signal)
         .sum();
 
-    let result2: usize = 0;
+    let result2: String = vec!["\n".to_owned(), register.draw_screen()].join("");
 
-    return (result1.to_string(), result2.to_string());
+    return (result1.to_string(), result2);
 }
 
 #[cfg(test)]
@@ -106,12 +135,6 @@ mod tests {
     fn get_signal_wave() {
         let test_input: String = day10::read_file("/inputs/day10_test.txt");
         let register = day10::Register::parse(&test_input);
-        assert_eq!(register.get_x_at_cycle(&20), 21);
-        assert_eq!(register.get_x_at_cycle(&60), 19);
-        assert_eq!(register.get_x_at_cycle(&100), 18);
-        assert_eq!(register.get_x_at_cycle(&140), 21);
-        assert_eq!(register.get_x_at_cycle(&180), 16);
-        assert_eq!(register.get_x_at_cycle(&220), 18);
 
         let expected_x_at_cycles: Vec<(usize, i32)> = vec![
             (20, 21),
@@ -126,6 +149,32 @@ mod tests {
             register.get_x_at_cycles(vec![20, 60, 100, 140, 180, 220]),
             expected_x_at_cycles
         );
+    }
+
+    #[test]
+    fn get_x_per_cycle() {
+        let test_input: String = day10::read_file("/inputs/day10_test.txt");
+        let register = day10::Register::parse(&test_input);
+        let x_per_cycles = register.get_x_per_cycle();
+        let mut sorted_x_per_cycles = x_per_cycles.iter().collect::<Vec<_>>();
+        sorted_x_per_cycles.sort_by(|(a, _), (b, _)| a.cmp(b));
+        for (cycle, x) in sorted_x_per_cycles {
+            println!("cycle: {}, x: {}", cycle, x)
+        }
+        assert_eq!(x_per_cycles.get(&20), Some(&21));
+        assert_eq!(x_per_cycles.get(&60), Some(&19));
+        assert_eq!(x_per_cycles.get(&100), Some(&18));
+        assert_eq!(x_per_cycles.get(&140), Some(&21));
+        assert_eq!(x_per_cycles.get(&180), Some(&16));
+        assert_eq!(x_per_cycles.get(&220), Some(&18));
+    }
+
+    #[test]
+    fn draw_screen() {
+        let test_input: String = day10::read_file("/inputs/day10_test.txt");
+        let register = day10::Register::parse(&test_input);
+        let screen = register.draw_screen();
+        println!("{}", screen);
     }
 
     #[test]
