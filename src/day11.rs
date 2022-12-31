@@ -56,6 +56,26 @@ impl Thrower for Monkey {
     }
 }
 
+struct KeepAwayGame {
+    monkeys: Jungle,
+}
+
+impl KeepAwayGame {
+    fn start(&mut self) {
+        let mut item: u32;
+        for monkey in self.monkeys.iter_mut() {
+            todo!()
+            // self.play_round(monkey);
+        }
+    }
+
+    fn play_round(&mut self, monkey: &mut Monkey) {
+        let item = monkey.items.pop().unwrap();
+        let inspected_item = monkey.inspect(item);
+        monkey.throw(inspected_item, &mut self.monkeys);
+    }
+}
+
 fn parser(input: &str) -> Jungle {
     let mut monkeys: Jungle = Vec::new();
     for line in input.lines() {
