@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash};
+use std::collections::HashMap;
 
 use crate::helpers::read_file;
 
