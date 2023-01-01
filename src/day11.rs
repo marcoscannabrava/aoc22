@@ -20,6 +20,7 @@ struct Monkey {
     operation_type: Option<OperationType>,
     operation_number: Option<u32>,
     test: MonkeyTest,
+    inspections: u32,
 }
 
 type Jungle = Vec<Monkey>;
@@ -50,6 +51,7 @@ impl Player for Monkey {
             true => self.test.true_monkey,
             false => self.test.false_monkey,
         };
+        self.inspections += 1;
         Ok((item, throw_to))
     }
 }
@@ -134,6 +136,17 @@ fn parser(input: &str) -> Jungle {
 pub fn solution() -> (String, String) {
     let contents = read_file("/inputs/day11.txt");
 
+    let mut game = KeepAwayGame {
+        monkeys: parser(&contents),
+    };
+
+    game.start(20);
+
+    let mut monkey_inspections = game.monkeys.iter().map(|m| m.inspections).collect::<Vec<u32>>();
+    monkey_inspections.sort();
+    let top_two = monkey_inspections.iter().rev().take(2).collect::<Vec<&u32>>();
+    let monkey_business = top_two.iter().product();
+    
     let result1: usize = 0;
     let result2: usize = 0;
 
@@ -207,5 +220,10 @@ Monkey 3:
         assert_eq!(game.monkeys[1].items, vec![245, 93, 53, 199, 115]);
         assert_eq!(game.monkeys[2].items, vec![]);
         assert_eq!(game.monkeys[3].items, vec![]);
+
+        assert_eq!(game.monkeys[0].inspections, 101);
+        assert_eq!(game.monkeys[1].inspections, 95);
+        assert_eq!(game.monkeys[2].inspections, 7);
+        assert_eq!(game.monkeys[3].inspections, 105);
     }
 }
