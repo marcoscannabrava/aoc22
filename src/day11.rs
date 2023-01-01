@@ -15,6 +15,7 @@ struct MonkeyTest {
 
 #[derive(Debug, Default)]
 struct Monkey {
+    idx: usize,
     items: Vec<u32>,
     operation_type: Option<OperationType>,
     operation_number: Option<u32>,
@@ -23,17 +24,18 @@ struct Monkey {
 
 type Jungle = Vec<Monkey>;
 
-trait Inspector {
-    fn inspect(&mut self, item: u32) -> u32;
+trait Player {
+    fn inspect_and_throw(&mut self) -> Result<(u32, usize), bool>;
 }
 
-trait Thrower {
-    fn throw(&self, item: u32, monkeys: &mut Jungle);
-}
+impl Player for Monkey {
+    fn inspect_and_throw(&mut self) -> Result<(u32, usize), bool> {
+        if self.items.len() == 0 {
+            return Err(true);
+        }
 
-impl Inspector for Monkey {
-    fn inspect(&mut self, item: u32) -> u32 {
-        match self.operation_type.as_mut().unwrap() {
+        let mut item = self.items.remove(0);
+        item = match self.operation_type.as_mut().unwrap() {
             OperationType::Multiplication => match self.operation_number {
                 Some(n) => n * item,
                 None => item * item,
@@ -42,17 +44,13 @@ impl Inspector for Monkey {
                 Some(n) => n + item,
                 None => item + item,
             },
-        }
-    }
-}
-
-impl Thrower for Monkey {
-    fn throw(&self, item: u32, monkeys: &mut Jungle) {
-        let throw_to: &mut Monkey = match item % self.test.divisible_by == 0 {
-            true => &mut monkeys[self.test.true_monkey],
-            false => &mut monkeys[self.test.false_monkey],
         };
-        throw_to.items.push(item);
+        item = item / 3;
+        let throw_to = match item % self.test.divisible_by == 0 {
+            true => self.test.true_monkey,
+            false => self.test.false_monkey,
+        };
+        Ok((item, throw_to))
     }
 }
 
@@ -61,26 +59,27 @@ struct KeepAwayGame {
 }
 
 impl KeepAwayGame {
-    fn start(&mut self) {
-        let mut item: u32;
-        for monkey in self.monkeys.iter_mut() {
-            todo!()
-            // self.play_round(monkey);
+    fn start(&mut self, rounds: usize) {
+        let num_monkeys = self.monkeys.len();
+        for round in 0..rounds {
+            let monkey = &mut self.monkeys[round % num_monkeys];
+            while let Ok((item, throw_to_idx)) = monkey.inspect_and_throw() {
+                let throw_to = &mut self.monkeys[throw_to_idx];
+                throw_to.items.push(item);
+            }
         }
-    }
-
-    fn play_round(&mut self, monkey: &mut Monkey) {
-        let item = monkey.items.pop().unwrap();
-        let inspected_item = monkey.inspect(item);
-        monkey.throw(inspected_item, &mut self.monkeys);
     }
 }
 
 fn parser(input: &str) -> Jungle {
     let mut monkeys: Jungle = Vec::new();
+    let idx: usize = 0;
     for line in input.lines() {
         if line.starts_with("Monkey") {
-            monkeys.push(Monkey::default());
+            monkeys.push(Monkey {
+                idx: idx,
+                ..Monkey::default()
+            });
         }
         if line.starts_with("  Starting items:") {
             let items: Vec<u32> = line
@@ -140,6 +139,8 @@ pub fn solution() -> (String, String) {
 
 #[cfg(test)]
 mod tests {
+    use std::{rc::Rc, cell::RefCell};
+
     use crate::day11;
 
     const TEST_INPUT: &str = "\
@@ -177,9 +178,12 @@ Monkey 3:
 
         assert_eq!(jungle.len(), 4);
         assert_eq!(jungle[0].items, vec![79, 98]);
-        assert_eq!(jungle[0].operation_type, Some(day11::OperationType::Multiplication));
+        assert_eq!(
+            jungle[0].operation_type,
+            Some(day11::OperationType::Multiplication)
+        );
         assert_eq!(jungle[0].operation_number, Some(19));
-        
+
         assert_eq!(jungle[2].operation_number, None);
         assert_eq!(jungle[2].test.divisible_by, 13);
         assert_eq!(jungle[2].test.true_monkey, 1);
@@ -187,5 +191,19 @@ Monkey 3:
 
         assert_eq!(jungle[3].items, vec![74]);
         assert_eq!(jungle[3].operation_number, Some(3));
+    }
+
+    #[test]
+    fn play_twenty_rounds() {
+        let jungle = day11::parser(TEST_INPUT);
+        let game = &mut day11::KeepAwayGame {
+            monkeys: jungle,
+        };
+        game.start(20);
+
+        assert_eq!(game.monkeys[0].items, vec![10, 12, 14, 26, 34]);
+        assert_eq!(game.monkeys[1].items, vec![10, 12, 14, 26, 34]);
+        assert_eq!(game.monkeys[2].items, vec![]);
+        assert_eq!(game.monkeys[3].items, vec![]);
     }
 }
