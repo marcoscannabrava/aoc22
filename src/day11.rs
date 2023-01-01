@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::helpers::read_file;
 
 #[derive(Debug, PartialEq)]
@@ -62,10 +64,11 @@ impl KeepAwayGame {
     fn start(&mut self, rounds: usize) {
         let num_monkeys = self.monkeys.len();
         for round in 0..rounds {
-            let monkey = &mut self.monkeys[round % num_monkeys];
-            while let Ok((item, throw_to_idx)) = monkey.inspect_and_throw() {
-                let throw_to = &mut self.monkeys[throw_to_idx];
-                throw_to.items.push(item);
+            unsafe {
+                let monkey = &mut self.monkeys[round % num_monkeys] as *mut Monkey;
+                while let Ok((item, throw_to_idx)) = (*monkey).inspect_and_throw() {
+                    self.monkeys[throw_to_idx].items.push(item);
+                }
             }
         }
     }
@@ -139,7 +142,7 @@ pub fn solution() -> (String, String) {
 
 #[cfg(test)]
 mod tests {
-    use std::{rc::Rc, cell::RefCell};
+    use std::{cell::RefCell, rc::Rc};
 
     use crate::day11;
 
@@ -196,9 +199,7 @@ Monkey 3:
     #[test]
     fn play_twenty_rounds() {
         let jungle = day11::parser(TEST_INPUT);
-        let game = &mut day11::KeepAwayGame {
-            monkeys: jungle,
-        };
+        let game = &mut day11::KeepAwayGame { monkeys: jungle };
         game.start(20);
 
         assert_eq!(game.monkeys[0].items, vec![10, 12, 14, 26, 34]);

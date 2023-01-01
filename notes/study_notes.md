@@ -37,5 +37,67 @@ Rc and RefCell (and Arc and Mutex) are often combined to both allow the value to
 > [What are Smart Pointers and their Types in Rust??](https://blog.knoldus.com/smart-pointers-box-rc-ref-and-refmut-in-rust/)
 
 
+___
+
+# Accessing mutable references in collections
+
+## Why this is hard in a Vec and not in a Struct
+One important distinction between struct access and Vec access is that, when you index mutably into a Vec, it's just syntactic sugar for calling the index_mut method from the IndexMut trait:
+
+pub fn index_mut(&mut self, index: I) -> &mut <Vec<T, A> as Index<I>>::Output
+Note that self is borrowed mutably, and in this case self is your Vec. So the whole Vec will be mutably borrowed for the lifetime of that borrow, which will be the lifetime of the variable that stores the return value.
+
+This is different from accessing a struct member, which is a language-level feature.
+
+
+Sometimes a reasonable usage of "unsafe" code. Usually through [Raw Pointers](https://web.mit.edu/rust-lang_v1.25/arch/amd64_ubuntu1404/share/doc/rust/html/book/first-edition/raw-pointers.html) or other Rusts' containers like Cell, RefCell, etc.
+
+> *[r/rust - Comment by u/javajunkie314 on ”When I have a mutable reference of a vector&#x27;s element, I cannot do anything to all other elements of the same vector, is this true?”](https://www.reddit.com/r/rust/comments/p60z3e/comment/h9caby0/?utm_source=share&utm_medium=web2x&context=3)
+
+
+[**Vec docs**](https://doc.rust-lang.org/std/vec/struct.Vec.html#)
+
+## [Simultaneous mutable access to arbitrary indices of a large vector that are guaranteed to be disjoint](https://stackoverflow.com/questions/55939552/simultaneous-mutable-access-to-arbitrary-indices-of-a-large-vector-that-are-guar)
+When the compiler can't enforce that mutable references to a slice elements aren't exclusive, [Cell](https://doc.rust-lang.org/std/cell/struct.Cell.html) is pretty nice.
+
+You can transform a &mut [T] into a &Cell<[T]> using Cell::from_mut, and then a &Cell<[T]> into a &[Cell<T>] using Cell::as_slice_of_cells. All of this is zero-cost: It's just there to guide the type-system.
+
+A &[Cell<T>] is like a &[mut T], if that were possible to write: A shared reference to a slice of mutable elements. What you can do with Cells is limited to read or replace — you can't get a reference, mutable or not, to the wrapped elements themselves. Rust also knows that Cell isn't thread-safe (it does not implement Sync). This guarantees that everything is safe, at no dynamic cost.
+
+```rs
+fn main() {
+    use std::cell::Cell;
+
+    let slice: &mut [i32] = &mut [1, 2, 3];
+    let cell_slice: &Cell<[i32]> = Cell::from_mut(slice);
+    let slice_cell: &[Cell<i32>] = cell_slice.as_slice_of_cells();
+    
+    let two = &slice_cell[1];
+    let another_two = &slice_cell[1];
+
+    println!("This is 2: {:?}", two);
+    println!("This is also 2: {:?}", another_two);
+    
+    two.set(42);
+    println!("This is now 42!: {:?}", another_two);
+}
+```
+
+Other options for simultaneous access:
+- [split_first_mut()](https://doc.rust-lang.org/std/primitive.slice.html#method.split_first_mut)
+- [split_array_mut()](https://doc.rust-lang.org/std/primitive.slice.html#method.split_array_mut)
+- [split_at_mut()](https://doc.rust-lang.org/std/primitive.slice.html#method.split_at_mut)
+- [iter_mut()](https://doc.rust-lang.org/std/primitive.slice.html#method.iter_mut)
+- ...
+
+## Resources
+[r/rust - Comment by u/RobertJacobson on ”Patterns to avoid borrowing mutable self more than once? (beyond RcRefcell and inner objects)”](https://www.reddit.com/r/rust/comments/hv2zqo/comment/fyr6k60/?utm_source=share&utm_medium=web2x&context=3)
+[How can I change fields of elements in vectors?](https://stackoverflow.com/questions/43550632/how-can-i-change-fields-of-elements-in-vectors)
+[r/rust - How do I modify vector elements through mutable references?](https://www.reddit.com/r/rust/comments/ddd7qm/how_do_i_modify_vector_elements_through_mutable/)
+[Unsafe rust and the borrow checker (multiple mutable borrows)](https://users.rust-lang.org/t/unsafe-rust-and-the-borrow-checker-multiple-mutable-borrows/63293/22)
+[How to get mutable references to two array elements at the same time?](https://stackoverflow.com/questions/30073684/how-to-get-mutable-references-to-two-array-elements-at-the-same-time)
+
+[Mutable References on Vectors vs. Structs: Some less known techniques.](https://applied-math-coding.medium.com/mutable-references-on-vectors-vs-structs-some-less-known-techniques-87098e2e2ba2)
+
 # Other Readings
 - [Dyn async traits, part 8: the soul of Rust](http://smallcultfollowing.com/babysteps/blog/2022/09/18/dyn-async-traits-part-8-the-soul-of-rust/)

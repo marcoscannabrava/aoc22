@@ -4,6 +4,7 @@
 - [Rust std crate](https://doc.rust-lang.org/stable/std/)
 - [Learning Rust With Entirely Too Many Linked Lists](https://rust-unofficial.github.io/too-many-lists/index.html)
 - [The Rust Programming Language](https://web.mit.edu/rust-lang_v1.25/arch/amd64_ubuntu1404/share/doc/rust/html/book/second-edition/ch01-00-introduction.html)
+- [Rust Design Patterns](https://rust-unofficial.github.io/patterns/intro.html)
 
 # Other Solutions
 1. [NickyMeuleman](https://nickymeuleman.netlify.app/garden/) — [GitHub - NickyMeuleman/scrapyard: Space for notes and experiments while learning the Rust programming language](https://github.com/NickyMeuleman/scrapyard)
