@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use crate::helpers::read_file;
 
 #[derive(Debug, PartialEq)]
@@ -63,9 +61,10 @@ struct KeepAwayGame {
 impl KeepAwayGame {
     fn start(&mut self, rounds: usize) {
         let num_monkeys = self.monkeys.len();
-        for round in 0..rounds {
+        let turns = rounds * num_monkeys; 
+        for turn in 0..turns {
             unsafe {
-                let monkey = &mut self.monkeys[round % num_monkeys] as *mut Monkey;
+                let monkey = &mut self.monkeys[turn % num_monkeys] as *mut Monkey;
                 while let Ok((item, throw_to_idx)) = (*monkey).inspect_and_throw() {
                     self.monkeys[throw_to_idx].items.push(item);
                 }
@@ -76,13 +75,14 @@ impl KeepAwayGame {
 
 fn parser(input: &str) -> Jungle {
     let mut monkeys: Jungle = Vec::new();
-    let idx: usize = 0;
+    let mut idx: usize = 0;
     for line in input.lines() {
         if line.starts_with("Monkey") {
             monkeys.push(Monkey {
                 idx: idx,
                 ..Monkey::default()
             });
+            idx += 1;
         }
         if line.starts_with("  Starting items:") {
             let items: Vec<u32> = line
@@ -142,8 +142,6 @@ pub fn solution() -> (String, String) {
 
 #[cfg(test)]
 mod tests {
-    use std::{cell::RefCell, rc::Rc};
-
     use crate::day11;
 
     const TEST_INPUT: &str = "\
@@ -200,10 +198,13 @@ Monkey 3:
     fn play_twenty_rounds() {
         let jungle = day11::parser(TEST_INPUT);
         let game = &mut day11::KeepAwayGame { monkeys: jungle };
+        
+        println!("start: {:?}", game.monkeys);
         game.start(20);
 
+        
         assert_eq!(game.monkeys[0].items, vec![10, 12, 14, 26, 34]);
-        assert_eq!(game.monkeys[1].items, vec![10, 12, 14, 26, 34]);
+        assert_eq!(game.monkeys[1].items, vec![245, 93, 53, 199, 115]);
         assert_eq!(game.monkeys[2].items, vec![]);
         assert_eq!(game.monkeys[3].items, vec![]);
     }
