@@ -175,7 +175,7 @@ pub fn solution() -> (String, String) {
     // Part 2
     game2.start_without_relief_coefficient(10000);
     let result2: u64 = calculate_monkey_business(&game2);
-    // let result2: u64 = 0;
+
     return (result1.to_string(), result2.to_string());
 }
 
