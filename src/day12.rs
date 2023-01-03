@@ -15,7 +15,7 @@ type Pos = (usize, usize);
 3. if E, dead-end or path_count >= min, reduce path_count by 1, repeat step 2
 */
 /// Returns min path
-fn dfs(start: Pos, end: Pos, grid: Grid) -> u32 {
+fn dfs(start: Pos, grid: Grid) -> u32 {
     let mut stack: Vec<Pos> = vec![start];
     let mut path_count: u32 = 0;
     let mut min_path_count: u32 = u32::MAX;
@@ -36,18 +36,25 @@ fn dfs(start: Pos, end: Pos, grid: Grid) -> u32 {
         }
         result
             .iter()
-            .filter(|x| visited.contains(x))
+            .filter(|x| !visited.contains(x))
             .cloned()
             .collect()
     };
 
     let alphabet: HashMap<char, u32> =
         HashMap::from_iter((10..36).map(|n| (char::from_digit(n, 36).unwrap(), n)));
-    let height_diff = |curr: &Pos, next: &Pos| -> u32 {
+    let height_diff = |curr: &Pos, next: &Pos| -> i32 {
+        if &grid[next.0][next.1].to_string() == "S"
+            || &grid[curr.0][curr.1].to_string() == "S"
+            || &grid[next.0][next.1].to_string() == "E"
+            || &grid[curr.0][curr.1].to_string() == "E"
+        {
+            return 0;
+        }
         if &grid[next.0][next.1].to_string() == "E" && &grid[curr.0][curr.1].to_string() == "z" {
             return 1;
         } else {
-            alphabet[&grid[next.0][next.1]] - alphabet[&grid[curr.0][curr.1]]
+            alphabet[&grid[next.0][next.1]] as i32 - alphabet[&grid[curr.0][curr.1]] as i32
         }
     };
 
@@ -55,9 +62,7 @@ fn dfs(start: Pos, end: Pos, grid: Grid) -> u32 {
         let curr = stack.pop().unwrap();
         if visited.insert(curr) {
             path_count += 1;
-        } else {
-            path_count -= 1;
-        };
+        }
         let n = neighbors(curr, visited)
             .iter()
             .filter(|x| height_diff(&curr, x) <= 1)
@@ -67,10 +72,12 @@ fn dfs(start: Pos, end: Pos, grid: Grid) -> u32 {
 
         if grid[curr.0][curr.1] == 'E' {
             min_path_count = path_count.min(min_path_count);
-            break;
+            path_count -= 1;
+            continue;
         }
         if dead_end || path_count >= min_path_count {
-            break;
+            path_count -= 1;
+            continue;
         }
         stack = [stack, n].concat();
     }
@@ -146,6 +153,6 @@ abdefghi";
     #[test]
     fn dfs() {
         let (start, end, grid) = day12::parser(TEST_INPUT);
-        assert_eq!(day12::dfs(start, end, grid), 31);
+        assert_eq!(day12::dfs(start, grid), 31);
     }
 }
