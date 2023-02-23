@@ -1,89 +1,14 @@
+use once_cell::sync::Lazy;
 use crate::helpers::read_file;
-use std::collections::{HashMap, HashSet};
 
-/* Approach:
-1. build adjacency matrix from input
-2. DFS counting steps until "E", dead-end or exceeds steps from previous path
-*/
+use std::collections::{BinaryHeap, HashMap, HashSet};
+
 
 type Grid = Vec<Vec<char>>;
 type Pos = (usize, usize);
 
-/*DFS Algorithm:
-1. push neighbors onto stack
-2. pop stack, add to visited, add to path_count
-3. if E, dead-end or path_count >= min, reduce path_count by 1, repeat step 2
-*/
-/// Returns min path
-fn dfs(start: Pos, grid: Grid) -> u32 {
-    let mut stack: Vec<Pos> = vec![start];
-    let mut path_count: u32 = 0;
-    let mut min_path_count: u32 = u32::MAX;
-    let visited: &mut HashSet<Pos> = &mut HashSet::new();
-    let neighbors = |pos: Pos, visited: &HashSet<(usize, usize)>| -> Vec<Pos> {
-        let mut result = Vec::new();
-        if pos.0 > 0 {
-            result.push((pos.0 - 1, pos.1));
-        }
-        if pos.1 > 0 {
-            result.push((pos.0, pos.1 - 1));
-        }
-        if pos.0 + 1 < grid.len() {
-            result.push((pos.0 + 1, pos.1));
-        }
-        if pos.1 + 1 < grid[0].len() {
-            result.push((pos.0, pos.1 + 1));
-        }
-        result
-            .iter()
-            .filter(|x| !visited.contains(x))
-            .cloned()
-            .collect()
-    };
-
-    let alphabet: HashMap<char, u32> =
-        HashMap::from_iter((10..36).map(|n| (char::from_digit(n, 36).unwrap(), n)));
-    let height_diff = |curr: &Pos, next: &Pos| -> i32 {
-        if &grid[next.0][next.1].to_string() == "S"
-            || &grid[curr.0][curr.1].to_string() == "S"
-            || &grid[next.0][next.1].to_string() == "E"
-            || &grid[curr.0][curr.1].to_string() == "E"
-        {
-            return 0;
-        }
-        if &grid[next.0][next.1].to_string() == "E" && &grid[curr.0][curr.1].to_string() == "z" {
-            return 1;
-        } else {
-            alphabet[&grid[next.0][next.1]] as i32 - alphabet[&grid[curr.0][curr.1]] as i32
-        }
-    };
-
-    while !stack.is_empty() {
-        let curr = stack.pop().unwrap();
-        if visited.insert(curr) {
-            path_count += 1;
-        }
-        let n = neighbors(curr, visited)
-            .iter()
-            .filter(|x| height_diff(&curr, x) <= 1)
-            .cloned()
-            .collect::<Vec<Pos>>();
-        let dead_end = n.is_empty();
-
-        if grid[curr.0][curr.1] == 'E' {
-            min_path_count = path_count.min(min_path_count);
-            path_count -= 1;
-            continue;
-        }
-        if dead_end || path_count >= min_path_count {
-            path_count -= 1;
-            continue;
-        }
-        stack = [stack, n].concat();
-    }
-
-    min_path_count
-}
+static ALPHABET: Lazy<HashMap<char, u32>> =
+    Lazy::new(|| HashMap::from_iter((10..36).map(|n| (char::from_digit(n, 36).unwrap(), n))));
 
 /// Returns (Start, End, Grid) tuple
 fn parser(input: &str) -> (Pos, Pos, Grid) {
@@ -110,10 +35,51 @@ fn parser(input: &str) -> (Pos, Pos, Grid) {
     (start, end, grid)
 }
 
+/// Returns list of neighbors of a given position
+fn neighbors(grid: &Grid, pos: &Pos) -> Vec<Pos> {
+    let mut result = Vec::new();
+    if pos.0 > 0 {
+        result.push((pos.0 - 1, pos.1));
+    }
+    if pos.1 > 0 {
+        result.push((pos.0, pos.1 - 1));
+    }
+    if pos.0 + 1 < grid.len() {
+        result.push((pos.0 + 1, pos.1));
+    }
+    if pos.1 + 1 < grid[0].len() {
+        result.push((pos.0, pos.1 + 1));
+    }
+    result.iter().cloned().collect()
+}
+
+fn height_diff(grid: &Grid, curr: &Pos, next: &Pos) -> i32 {
+    if grid[next.0][next.1].to_string() == "S"
+        || grid[curr.0][curr.1].to_string() == "S"
+        || grid[next.0][next.1].to_string() == "E" // TODO: can we hop on E from any char?
+        || grid[curr.0][curr.1].to_string() == "E"
+    {
+        return 0;
+    }
+    if grid[next.0][next.1].to_string() == "E" && grid[curr.0][curr.1].to_string() == "z" {
+        return 1;
+    } else {
+        ALPHABET[&grid[next.0][next.1]] as i32 - ALPHABET[&grid[curr.0][curr.1]] as i32
+    }
+}
+
+/// Returns the shortest path from start to end
+// fn dijkstra(start: Pos, end: Pos, grid: Grid) -> u32 {
+//     let mut heap: BinaryHeap<(u32, Pos)> = BinaryHeap::new();
+
+//     min_path_count
+// }
+
 pub fn solution() -> (String, String) {
     let contents = read_file("/inputs/day12.txt");
 
     let grid = parser(&contents);
+
     let result1: usize = 0;
     let result2: usize = 0;
 
@@ -149,10 +115,32 @@ abdefghi";
         assert_eq!(grid[3][7], 'j');
         assert_eq!(grid[4][7], 'i');
     }
+    
+    #[test]
+    fn alphabet() {
+        let mut alphabet = day12::ALPHABET.iter().collect::<Vec<(&char, &u32)>>();
+        alphabet.sort_by(|a, b| a.1.cmp(b.1));
+        println!("{:?}", alphabet);
+        assert_eq!(alphabet[0].0, &'a');
+        assert_eq!(alphabet[1].0, &'b');
+        assert_eq!(alphabet.last().unwrap().0, &'z');
+    }
 
     #[test]
-    fn dfs() {
-        let (start, end, grid) = day12::parser(TEST_INPUT);
-        assert_eq!(day12::dfs(start, grid), 31);
+    fn neighbors() {
+        let (start, _, grid) = day12::parser(TEST_INPUT);
+        assert_eq!(day12::neighbors(&grid, &start), vec![(1, 0), (0, 1)]);
+        assert_eq!(day12::neighbors(&grid, &(0, 1)), vec![(0, 0), (1, 1), (0, 2)]);
+        assert_eq!(day12::neighbors(&grid, &(3, 3)), vec![(2, 3), (3, 2), (4, 3), (3, 4)]);
     }
+
+    #[test]
+    fn height_diff() {
+        let (start, end, grid) = day12::parser(TEST_INPUT);
+        assert_eq!(day12::height_diff(&grid, &start, &(1, 0)), 0);
+        assert_eq!(day12::height_diff(&grid, &start, &(0, 1)), 0);
+        assert_eq!(day12::height_diff(&grid, &end, &(1, 1)), 0);
+    }
+    // let (start, end, grid) = day12::parser(TEST_INPUT);
+    // assert_eq!(day12::dfs(start, grid), 31);
 }
