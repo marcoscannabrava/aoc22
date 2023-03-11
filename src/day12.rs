@@ -1,8 +1,7 @@
-use once_cell::sync::Lazy;
 use crate::helpers::read_file;
+use once_cell::sync::Lazy;
 
-use std::collections::{BinaryHeap, HashMap, HashSet};
-
+use std::{collections::{BinaryHeap, HashMap}, cmp::min};
 
 type Grid = Vec<Vec<char>>;
 type Pos = (usize, usize);
@@ -68,19 +67,38 @@ fn height_diff(grid: &Grid, curr: &Pos, next: &Pos) -> i32 {
     }
 }
 
-/// Returns the shortest path from start to end
-// fn dijkstra(start: Pos, end: Pos, grid: Grid) -> u32 {
-//     let mut heap: BinaryHeap<(u32, Pos)> = BinaryHeap::new();
-
-//     min_path_count
-// }
+fn dijkstra(grid: &Grid, start: &Pos, end: &Pos) -> usize {
+    let mut visited = HashMap::new();
+    let mut stack = BinaryHeap::new();
+    stack.push((0, start.clone()));
+    while let Some((steps, curr)) = stack.pop() {
+        if &curr == end {
+            return steps;
+        }
+        visited
+            .entry(curr)
+            .and_modify(|e| {
+                *e = min(*e, steps);
+            })
+            .or_insert(steps);
+        if visited.contains_key(&curr) {
+            continue;
+        }
+        for next in neighbors(&grid, &curr) {
+            if height_diff(&grid, &curr, &next) <= 1 {
+                stack.push((steps + 1, next));
+            }
+        }
+    }
+    0
+}
 
 pub fn solution() -> (String, String) {
     let contents = read_file("/inputs/day12.txt");
 
-    let grid = parser(&contents);
+    let (start, end, grid) = parser(&contents);
 
-    let result1: usize = 0;
+    let result1: usize = dijkstra(&grid, &start, &end);
     let result2: usize = 0;
 
     return (result1.to_string(), result2.to_string());
@@ -115,7 +133,7 @@ abdefghi";
         assert_eq!(grid[3][7], 'j');
         assert_eq!(grid[4][7], 'i');
     }
-    
+
     #[test]
     fn alphabet() {
         let mut alphabet = day12::ALPHABET.iter().collect::<Vec<(&char, &u32)>>();
@@ -130,8 +148,14 @@ abdefghi";
     fn neighbors() {
         let (start, _, grid) = day12::parser(TEST_INPUT);
         assert_eq!(day12::neighbors(&grid, &start), vec![(1, 0), (0, 1)]);
-        assert_eq!(day12::neighbors(&grid, &(0, 1)), vec![(0, 0), (1, 1), (0, 2)]);
-        assert_eq!(day12::neighbors(&grid, &(3, 3)), vec![(2, 3), (3, 2), (4, 3), (3, 4)]);
+        assert_eq!(
+            day12::neighbors(&grid, &(0, 1)),
+            vec![(0, 0), (1, 1), (0, 2)]
+        );
+        assert_eq!(
+            day12::neighbors(&grid, &(3, 3)),
+            vec![(2, 3), (3, 2), (4, 3), (3, 4)]
+        );
     }
 
     #[test]
@@ -141,6 +165,10 @@ abdefghi";
         assert_eq!(day12::height_diff(&grid, &start, &(0, 1)), 0);
         assert_eq!(day12::height_diff(&grid, &end, &(1, 1)), 0);
     }
-    // let (start, end, grid) = day12::parser(TEST_INPUT);
-    // assert_eq!(day12::dfs(start, grid), 31);
+
+    #[test]
+    fn dijkstra() {
+        let (start, end, grid) = day12::parser(TEST_INPUT);
+        assert_eq!(day12::dijkstra(&grid, &start, &end), 31);
+    }
 }

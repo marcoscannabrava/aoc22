@@ -1,3 +1,5 @@
+# Study Notes
+
 # Problems faced building a Tree in Rust
 
 ## Lifetimes in Loops
