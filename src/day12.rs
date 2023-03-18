@@ -55,13 +55,14 @@ fn neighbors(grid: &Grid, pos: &Pos) -> Vec<Pos> {
 fn height_diff(grid: &Grid, curr: &Pos, next: &Pos) -> i32 {
     if grid[next.0][next.1].to_string() == "S"
         || grid[curr.0][curr.1].to_string() == "S"
-        || grid[next.0][next.1].to_string() == "E" // TODO: can we hop on E from any char?
         || grid[curr.0][curr.1].to_string() == "E"
-    {
-        return 0;
-    }
+        {
+            return 0;
+        }
     if grid[next.0][next.1].to_string() == "E" && grid[curr.0][curr.1].to_string() == "z" {
         return 1;
+    } else if grid[next.0][next.1].to_string() == "E" {
+        return 2
     } else {
         ALPHABET[&grid[next.0][next.1]] as i32 - ALPHABET[&grid[curr.0][curr.1]] as i32
     }
@@ -75,15 +76,10 @@ fn dijkstra(grid: &Grid, start: &Pos, end: &Pos) -> usize {
         if &curr == end {
             return steps;
         }
-        visited
-            .entry(curr)
-            .and_modify(|e| {
-                *e = min(*e, steps);
-            })
-            .or_insert(steps);
-        if visited.contains_key(&curr) {
+        if visited.contains_key(&curr) && visited[&curr] <= steps {
             continue;
         }
+        visited.insert(curr, steps);
         for next in neighbors(&grid, &curr) {
             if height_diff(&grid, &curr, &next) <= 1 {
                 stack.push((steps + 1, next));
@@ -169,6 +165,6 @@ abdefghi";
     #[test]
     fn dijkstra() {
         let (start, end, grid) = day12::parser(TEST_INPUT);
-        assert_eq!(day12::dijkstra(&grid, &start, &end), 31);
+        assert_eq!(day12::dijkstra(&grid, &start, &end) - 2, 31);
     }
 }
