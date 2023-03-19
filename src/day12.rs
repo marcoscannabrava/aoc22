@@ -1,7 +1,7 @@
 use crate::helpers::read_file;
 use once_cell::sync::Lazy;
 
-use std::{collections::{BinaryHeap, HashMap}, cmp::min};
+use std::{collections::{BinaryHeap, HashMap}, cmp::Reverse};
 
 type Grid = Vec<Vec<char>>;
 type Pos = (usize, usize);
@@ -70,19 +70,19 @@ fn height_diff(grid: &Grid, curr: &Pos, next: &Pos) -> i32 {
 
 fn dijkstra(grid: &Grid, start: &Pos, end: &Pos) -> usize {
     let mut visited = HashMap::new();
-    let mut stack = BinaryHeap::new();
-    stack.push((0, start.clone()));
-    while let Some((steps, curr)) = stack.pop() {
+    let mut heap = BinaryHeap::new();
+    heap.push(Reverse((0, *start)));
+    while let Some(Reverse((steps, curr))) = heap.pop() {
         if &curr == end {
             return steps;
         }
-        if visited.contains_key(&curr) && visited[&curr] <= steps {
+        if visited.contains_key(&curr) {
             continue;
         }
         visited.insert(curr, steps);
         for next in neighbors(&grid, &curr) {
             if height_diff(&grid, &curr, &next) <= 1 {
-                stack.push((steps + 1, next));
+                heap.push(Reverse((steps + 1, next)));
             }
         }
     }
@@ -165,6 +165,6 @@ abdefghi";
     #[test]
     fn dijkstra() {
         let (start, end, grid) = day12::parser(TEST_INPUT);
-        assert_eq!(day12::dijkstra(&grid, &start, &end) - 2, 31);
+        assert_eq!(day12::dijkstra(&grid, &start, &end), 31);
     }
 }
