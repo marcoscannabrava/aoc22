@@ -1,7 +1,10 @@
 use crate::helpers::read_file;
 use once_cell::sync::Lazy;
 
-use std::{collections::{BinaryHeap, HashMap}, cmp::Reverse};
+use std::{
+    cmp::Reverse,
+    collections::{BinaryHeap, HashMap},
+};
 
 type Grid = Vec<Vec<char>>;
 type Pos = (usize, usize);
@@ -32,6 +35,18 @@ fn parser(input: &str) -> (Pos, Pos, Grid) {
         })
         .collect();
     (start, end, grid)
+}
+
+fn get_low_points(grid: &Grid) -> Vec<Pos> {
+    let mut result = Vec::new();
+    grid.iter().enumerate().for_each(|(y, line)| {
+        line.iter().enumerate().for_each(|(x, char)| {
+            if char.to_string() == "a" {
+                result.push((y, x))
+            }
+        })
+    });
+    result
 }
 
 /// Returns list of neighbors of a given position
@@ -96,7 +111,18 @@ pub fn solution() -> (String, String) {
     let (start, end, grid) = parser(&contents);
 
     let result1: usize = dijkstra(&grid, &start, &end);
-    let result2: usize = 0;
+
+    let low_points = get_low_points(&grid);
+    let result2: usize = low_points
+        .iter()
+        .map(|start_pos| {
+            match dijkstra(&grid, &start_pos, &end) {
+                0 => usize::MAX,
+                x => x,
+            }
+        })
+        .min()
+        .unwrap();
 
     return (result1.to_string(), result2.to_string());
 }
@@ -179,5 +205,14 @@ accczzxk";
     fn dijkstra_two() {
         let (start, end, grid) = day12::parser(TEST_INPUT_TWO);
         assert_eq!(day12::dijkstra(&grid, &start, &end), 0);
+    }
+
+    #[test]
+    fn get_low_points() {
+        let (_, _, grid) = day12::parser(TEST_INPUT);
+        assert_eq!(
+            day12::get_low_points(&grid),
+            vec![(0, 1), (1, 0), (2, 0), (3, 0), (4, 0)]
+        );
     }
 }
