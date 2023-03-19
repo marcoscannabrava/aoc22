@@ -79,7 +79,7 @@ fn main() {
     println!("---");
 
     let day13_result = day13::solution();
-    println!("Day 12, Part 1 Answer: {}", day13_result.0);
-    println!("Day 12, Part 2 Answer: {}", day13_result.1);
+    println!("Day 13, Part 1 Answer: {}", day13_result.0);
+    println!("Day 13, Part 2 Answer: {}", day13_result.1);
     println!("---");
 }

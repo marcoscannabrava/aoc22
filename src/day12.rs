@@ -102,7 +102,7 @@ fn dijkstra(grid: &Grid, start: &Pos, end: &Pos) -> usize {
             }
         }
     }
-    0
+    usize::MAX
 }
 
 pub fn solution() -> (String, String) {
@@ -115,12 +115,7 @@ pub fn solution() -> (String, String) {
     let low_points = get_low_points(&grid);
     let result2: usize = low_points
         .iter()
-        .map(|start_pos| {
-            match dijkstra(&grid, &start_pos, &end) {
-                0 => usize::MAX,
-                x => x,
-            }
-        })
+        .map(|start_pos| dijkstra(&grid, &start_pos, &end))
         .min()
         .unwrap();
 
