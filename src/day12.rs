@@ -53,19 +53,19 @@ fn neighbors(grid: &Grid, pos: &Pos) -> Vec<Pos> {
 }
 
 fn height_diff(grid: &Grid, curr: &Pos, next: &Pos) -> i32 {
-    if grid[next.0][next.1].to_string() == "S"
-        || grid[curr.0][curr.1].to_string() == "S"
-        || grid[curr.0][curr.1].to_string() == "E"
-        {
-            return 0;
-        }
-    if grid[next.0][next.1].to_string() == "E" && grid[curr.0][curr.1].to_string() == "z" {
-        return 1;
-    } else if grid[next.0][next.1].to_string() == "E" {
-        return 2
-    } else {
-        ALPHABET[&grid[next.0][next.1]] as i32 - ALPHABET[&grid[curr.0][curr.1]] as i32
+    let curr_elevation;
+    let next_elevation;
+    match grid[curr.0][curr.1] {
+        'S' => curr_elevation = 'a',
+        'E' => curr_elevation = 'z',
+        _ => curr_elevation = grid[curr.0][curr.1],
     }
+    match grid[next.0][next.1] {
+        'S' => next_elevation = 'a',
+        'E' => next_elevation = 'z',
+        _ => next_elevation = grid[next.0][next.1],
+    }
+    ALPHABET[&next_elevation] as i32 - ALPHABET[&curr_elevation] as i32
 }
 
 fn dijkstra(grid: &Grid, start: &Pos, end: &Pos) -> usize {
@@ -80,6 +80,7 @@ fn dijkstra(grid: &Grid, start: &Pos, end: &Pos) -> usize {
             continue;
         }
         visited.insert(curr, steps);
+        // println!("{}: {:?} {:?}", steps, curr, grid[curr.0][curr.1]);
         for next in neighbors(&grid, &curr) {
             if height_diff(&grid, &curr, &next) <= 1 {
                 heap.push(Reverse((steps + 1, next)));
@@ -159,12 +160,24 @@ abdefghi";
         let (start, end, grid) = day12::parser(TEST_INPUT);
         assert_eq!(day12::height_diff(&grid, &start, &(1, 0)), 0);
         assert_eq!(day12::height_diff(&grid, &start, &(0, 1)), 0);
-        assert_eq!(day12::height_diff(&grid, &end, &(1, 1)), 0);
+        assert_eq!(day12::height_diff(&grid, &(1, 5), &end), 2);
     }
 
     #[test]
     fn dijkstra() {
         let (start, end, grid) = day12::parser(TEST_INPUT);
         assert_eq!(day12::dijkstra(&grid, &start, &end), 31);
+    }
+
+    const TEST_INPUT_TWO: &str = "\
+Szzzzzzj
+zabqfhEi
+abcdefgh
+accczzxk";
+
+    #[test]
+    fn dijkstra_two() {
+        let (start, end, grid) = day12::parser(TEST_INPUT_TWO);
+        assert_eq!(day12::dijkstra(&grid, &start, &end), 0);
     }
 }
