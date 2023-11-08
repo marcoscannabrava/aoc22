@@ -12,6 +12,7 @@
 3. [ericwburden](https://www.ericburden.work/blog/) — [GitHub - ericwburden/advent_of_code_2022: Advent of Code solutions for 2022, in Rust!](https://github.com/ericwburden/advent_of_code_2022)
 4. [GitHub - AxlLind/AdventOfCode2022: Solutions to Advent of Code 2022 in Rust  🦀](https://github.com/AxlLind/AdventOfCode2022)
 5. [GitHub - simonw/advent-of-code-2022-in-rust: Copilot-assisted Advent of Code 2022 to learn Rust](https://github.com/simonw/advent-of-code-2022-in-rust)
+6. [GitHub - UncleScientist/aoclib-rs: A general-purpose utility library for solving AoC problems](https://github.com/UncleScientist/aoclib-rs)
 
 
 # Others
